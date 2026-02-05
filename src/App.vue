@@ -96,6 +96,6 @@ if (!window.ethereum) {
   </div>
 
   <footer class="fixed bottom-0 w-full bg-base-100">
-    <p class="text-center text-xs p-1">Made with ❤️ by <a href="https://github.com/zeative" class="link link-primary" target="_blank">zaadevofc</a></p>
+    <p class="text-center text-xs p-1">Made with ❤️ by <a href="https://github.com/zeative" class="link link-primary" target="_blank">zaadevofc</a> | <a href="https://github.com/zeative/blockchain-profiling-metamask" class="link link-primary" target="_blank">Source Code</a></p>
   </footer>
 </template>
