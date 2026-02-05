@@ -5,6 +5,8 @@ import { ethers } from "ethers";
 const provider = new ethers.BrowserProvider(window.ethereum);
 
 const isLoading = ref(true);
+
+const network = ref({});
 const profile = ref({
   isHasLoggedIn: false,
 });
@@ -25,6 +27,9 @@ const connectMetaMask = async () => {
       const owner = await signer.getAddress();
       const blockNumber = await provider.getBlockNumber();
       const block = await provider.getBlock(blockNumber);
+
+      const getNetwork = await provider.getNetwork();
+      network.value = getNetwork.toJSON();
 
       profile.value.address = signer.address;
       profile.value.owner = owner;
@@ -63,7 +68,7 @@ if (!window.ethereum) {
     <button class="btn btn-md" :class="profile.isHasLoggedIn ? 'my-10' : 'my-auto'" @click="connectMetaMask" :disabled="isLoading || profile.isHasLoggedIn">
       <img src="/mt5.png" class="size-4" :hidden="isLoading" />
       <span class="loading loading-xs loading-spinner" :hidden="!isLoading"></span>
-      {{ profile.isHasLoggedIn ? "Connected ✅" : "Connect with MetaMask" }}
+      {{ profile.isHasLoggedIn ? `Connected (${network?.name}) ✅` : "Connect with MetaMask" }}
     </button>
 
     <div
@@ -73,7 +78,7 @@ if (!window.ethereum) {
       :key="index"
     >
       <label :for="`name-${index}`" class="text-sm font-semibold capitalize">{{ item }}</label>
-      <h1 class="text-sm font-medium capitalize col-end-4">{{ profile[item] }}</h1>
+      <h1 class="text-sm font-light capitalize col-end-4">{{ profile[item] }}</h1>
     </div>
   </div>
 
