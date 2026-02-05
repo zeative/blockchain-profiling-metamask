@@ -1,10 +1,26 @@
 <script setup>
-import { ref } from "vue";
 import { ethers } from "ethers";
+import { ref, watch } from "vue";
+import { ABI_CONFIG, SC_ADDRESS_CONFIG } from "./consts";
+import { ErrorDecoder } from "ethers-decode-error";
 
-const provider = new ethers.BrowserProvider(window.ethereum);
+if (!window.ethereum) {
+  location.href = "#mt5-not-installed";
+}
+
+const errorDecoder = ErrorDecoder.create();
 
 const isLoading = ref(true);
+const errors = ref(null);
+
+watch(
+  () => errors.value,
+  (newVal) => {
+    if (newVal) {
+      location.href = "#errors";
+    }
+  },
+);
 
 const network = ref({});
 const profile = ref({
@@ -12,21 +28,28 @@ const profile = ref({
 });
 
 const connectMetaMask = async () => {
-  isLoading.value = true;
-
   if (!window.ethereum) {
     location.href = "#mt5-not-installed";
+    return;
   }
 
+  isLoading.value = true;
+
   try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
     const accounts = await provider.send("eth_requestAccounts");
 
     if (accounts.length) {
       const signer = await provider.getSigner();
+      const contract = new ethers.Contract(SC_ADDRESS_CONFIG, ABI_CONFIG, signer);
+
       const balance = await provider.getBalance(signer.address);
-      const owner = await signer.getAddress();
+      const owner = await contract.owner();
       const blockNumber = await provider.getBlockNumber();
       const block = await provider.getBlock(blockNumber);
+
+      // const profile = await contract.getProfile(signer.address);
+      // console.log(profile);
 
       const getNetwork = await provider.getNetwork();
       network.value = getNetwork.toJSON();
@@ -47,7 +70,9 @@ const connectMetaMask = async () => {
     isLoading.value = false;
   } catch (error) {
     isLoading.value = false;
-    console.error(error);
+
+    const err = await errorDecoder.decode(error);
+    errors.value = err.reason;
   }
 };
 
@@ -71,31 +96,70 @@ if (!window.ethereum) {
       {{ profile.isHasLoggedIn ? `Connected (${network?.name}) ✅` : "Connect with MetaMask" }}
     </button>
 
-    <div
-      class="grid grid-cols-2 gap-6 w-full border border-base-content/20 p-3"
-      v-for="(item, index) in Object.keys(profile)"
-      :hidden="!profile.isHasLoggedIn || index == 0"
-      :key="index"
-    >
-      <label :for="`name-${index}`" class="text-sm font-semibold capitalize">{{ item }}</label>
-      <h1 class="text-sm font-light capitalize col-end-4">{{ profile[item] }}</h1>
+    <div class="tabs tabs-border tabs-xs self-start gap-x-2 tracking-wider">
+      <input type="radio" name="tabs" class="tab mb-3" aria-label="Overview" checked="checked" />
+      <div class="tab-content">
+        <div
+          class="grid grid-cols-2 gap-6 w-full border border-base-content/20 p-3"
+          v-for="(item, index) in Object.keys(profile)"
+          :hidden="!profile.isHasLoggedIn || index == 0"
+          :key="index"
+        >
+          <label :for="`name-${index}`" class="text-sm font-semibold capitalize">{{ item }}</label>
+          <h1 class="text-sm font-light capitalize col-end-4">{{ profile[item] }}</h1>
+        </div>
+      </div>
+
+      <input type="radio" name="tabs" class="tab mb-3" aria-label="Profile" />
+      <input type="radio" name="tabs" class="tab mb-3" aria-label="Settings" />
     </div>
   </div>
 
   <div class="modal" role="dialog" id="mt5-not-installed">
     <div class="modal-box bg-error-content">
       <h3 class="text-lg font-bold">MetaMask Not Installed</h3>
-      <p class="py-4">
+      <p class="mt-4">
         Please install MetaMask to use this application. You can install it from
-        <a href="https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn" class="link link-error" target="_blank">Chrome Web Store</a>.
+        <a
+          href="https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?ref=https://zeative.github.io/blockchain-profiling-metamask/"
+          class="link link-error"
+          target="_blank"
+          >Chrome Web Store</a
+        >.
       </p>
       <div class="modal-action">
-        <a href="#" class="btn btn-error">Install</a>
+        <a
+          href="https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?ref=https://zeative.github.io/blockchain-profiling-metamask/"
+          class="btn btn-error btn-sm"
+          target="_blank"
+          >Install</a
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" role="dialog" id="errors">
+    <div class="modal-box bg-error-content">
+      <h3 class="text-lg font-bold">Internal System Error</h3>
+      <p class="mt-4 font-mono text-sm bg-base-100/30 px-2 py-1 rounded-md">
+        {{ errors }}
+      </p>
+      <div class="modal-action">
+        <a href="#" class="btn btn-error btn-sm">Close</a>
       </div>
     </div>
   </div>
 
   <footer class="fixed bottom-0 w-full bg-base-100">
-    <p class="text-center text-xs p-1">Made with ❤️ by <a href="https://github.com/zeative" class="link link-primary" target="_blank">zaadevofc</a> | <a href="https://github.com/zeative/blockchain-profiling-metamask" class="link link-primary" target="_blank">Source Code</a></p>
+    <p class="text-center text-xs p-1">
+      Made with ❤️ by
+      <a href="https://github.com/zeative?ref=https://zeative.github.io/blockchain-profiling-metamask/" class="link link-primary" target="_blank">zaadevofc</a> |
+      <a
+        href="https://github.com/zeative/blockchain-profiling-metamask?ref=https://zeative.github.io/blockchain-profiling-metamask/"
+        class="link link-primary"
+        target="_blank"
+        >Source Code</a
+      >
+    </p>
   </footer>
 </template>
