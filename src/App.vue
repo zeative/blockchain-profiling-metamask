@@ -94,7 +94,7 @@ const checkProfile = async () => {
 
     const tx = await contract.getProfile(profile.value.address);
 
-    console.log(tx);
+    profile.value.profiling = tx;
   } catch (error) {
     const err = await errorDecoder.decode(error);
     errors.value = err.reason;
@@ -117,8 +117,6 @@ const insertProfile = async () => {
 
     const tx = await contract.createProfile(name, key);
     await tx.wait();
-
-    console.log(tx);
 
     profile.value.name = name;
     profile.value.key = key;
@@ -158,9 +156,19 @@ const insertProfile = async () => {
 
       <input type="radio" name="tabs" class="tab mb-3" aria-label="Check Profile" />
       <div class="tab-content px-3 mt-4">
-        <div class="flex flex-col items-center w-full gap-2 mx-auto">
+        <div class="flex flex-col items-center w-full gap-2 mx-auto mb-5">
           <input type="text" class="input input-sm w-xl" placeholder="Input address..." />
           <button class="btn btn-sm btn-primary" @click="checkProfile">Check Now</button>
+        </div>
+
+        <div
+          class="grid grid-cols-[150px_1fr] gap-2 w-full border border-base-content/20 p-3 hover:bg-base-content/5 max-sm:text-xs text-sm"
+          v-for="(item, index) in Object.keys(profile?.profiling || {})"
+          :key="index"
+          :hidden="!profile?.profiling"
+        >
+          <label :for="`name-${index}`" class="font-semibold capitalize truncate">{{ item }}</label>
+          <h1 class="font-light font-mono capitalize truncate max-sm:col-span-2">{{ profile.profiling[item] }}</h1>
         </div>
       </div>
 
