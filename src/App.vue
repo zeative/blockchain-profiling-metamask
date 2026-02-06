@@ -13,6 +13,8 @@ const errorDecoder = ErrorDecoder.create();
 const isLoading = ref(true);
 const errors = ref(null);
 
+const ethersProvider = ref(null);
+
 watch(
   () => errors.value,
   (newVal) => {
@@ -48,20 +50,22 @@ const connectMetaMask = async () => {
       const blockNumber = await provider.getBlockNumber();
       const block = await provider.getBlock(blockNumber);
 
-      // const profile = await contract.getProfile(signer.address);
-      // console.log(profile);
-
       const getNetwork = await provider.getNetwork();
       network.value = getNetwork.toJSON();
 
       profile.value.address = signer.address;
       profile.value.owner = owner;
       profile.value.blockNumber = blockNumber;
-      profile.value.balance = ethers.formatEther(balance);
+      profile.value.balance = ethers.formatEther(balance) + " ETH";
 
       for (let i = 0; i < Object.keys(block).length; i++) {
         const e = Object.keys(block)[i];
-        profile.value[e] = block[e];
+
+        if (e == "timestamp") {
+          profile.value[e] = new Date(block[e] * 1000).toLocaleString() + ` (${block[e]})`;
+        } else {
+          profile.value[e] = block[e];
+        }
       }
 
       profile.value.isHasLoggedIn = true;
@@ -81,13 +85,55 @@ if (!window.ethereum) {
 } else {
   connectMetaMask();
 }
+
+const checkProfile = async () => {
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(SC_ADDRESS_CONFIG, ABI_CONFIG, signer);
+
+    const tx = await contract.getProfile(profile.value.address);
+
+    console.log(tx);
+  } catch (error) {
+    const err = await errorDecoder.decode(error);
+    errors.value = err.reason;
+  }
+};
+
+const insertProfile = async () => {
+  try {
+    const name = profile.value.name;
+    const key = profile.value.key;
+
+    if (!name || !key) {
+      errors.value = "Please fill in all fields";
+      return;
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(SC_ADDRESS_CONFIG, ABI_CONFIG, signer);
+
+    const tx = await contract.createProfile(name, key);
+    await tx.wait();
+
+    console.log(tx);
+
+    profile.value.name = name;
+    profile.value.key = key;
+  } catch (error) {
+    const err = await errorDecoder.decode(error);
+    errors.value = err.reason;
+  }
+};
 </script>
 
 <template>
   <div class="flex flex-col items-center min-h-dvh p-3 pb-10 max-w-3xl border-x border-base-content/20 mx-auto w-full bg-neutral drop-shadow-xl">
-    <div class="flex items-center gap-5 mt-5">
-      <img src="/mt5.png" class="size-12" />
-      <h1 class="text-3xl font-bold">Blockchain Profiling with MetaMask</h1>
+    <div class="flex flex-col items-center gap-5 mt-5">
+      <img src="/mt5.png" class="size-13" />
+      <h1 class="max-sm:text-xl text-3xl font-bold max-w-lg text-center">Blockchain Profiling with MetaMask (Sepolia)</h1>
     </div>
 
     <button class="btn btn-md" :class="profile.isHasLoggedIn ? 'my-10' : 'my-auto'" @click="connectMetaMask" :disabled="isLoading || profile.isHasLoggedIn">
@@ -96,22 +142,36 @@ if (!window.ethereum) {
       {{ profile.isHasLoggedIn ? `Connected (${network?.name}) ✅` : "Connect with MetaMask" }}
     </button>
 
-    <div class="tabs tabs-border tabs-xs self-start gap-x-2 tracking-wider">
+    <div class="tabs tabs-border tabs-xs self-start gap-x-2 tracking-wide w-full" :hidden="!profile.isHasLoggedIn">
       <input type="radio" name="tabs" class="tab mb-3" aria-label="Overview" checked="checked" />
       <div class="tab-content">
         <div
-          class="grid grid-cols-2 gap-6 w-full border border-base-content/20 p-3"
+          class="grid grid-cols-[150px_1fr] gap-2 w-full border border-base-content/20 p-3 hover:bg-base-content/5 max-sm:text-xs text-sm"
           v-for="(item, index) in Object.keys(profile)"
-          :hidden="!profile.isHasLoggedIn || index == 0"
+          :hidden="index == 0"
           :key="index"
         >
-          <label :for="`name-${index}`" class="text-sm font-semibold capitalize">{{ item }}</label>
-          <h1 class="text-sm font-light capitalize col-end-4">{{ profile[item] }}</h1>
+          <label :for="`name-${index}`" class="font-semibold capitalize truncate">{{ item }}</label>
+          <h1 class="font-light font-mono capitalize truncate max-sm:col-span-2">{{ profile[item] }}</h1>
         </div>
       </div>
 
-      <input type="radio" name="tabs" class="tab mb-3" aria-label="Profile" />
-      <input type="radio" name="tabs" class="tab mb-3" aria-label="Settings" />
+      <input type="radio" name="tabs" class="tab mb-3" aria-label="Check Profile" />
+      <div class="tab-content px-3 mt-4">
+        <div class="flex flex-col items-center w-full gap-2 mx-auto">
+          <input type="text" class="input input-sm w-xl" placeholder="Input address..." />
+          <button class="btn btn-sm btn-primary" @click="checkProfile">Check Now</button>
+        </div>
+      </div>
+
+      <input type="radio" name="tabs" class="tab mb-3" aria-label="Input Profile" />
+      <div class="tab-content px-3 mt-4">
+        <div class="flex flex-col items-center w-full gap-2 mx-auto">
+          <input type="text" class="input input-sm w-xl" placeholder="Input name..." v-model="profile.name" />
+          <input type="text" class="input input-sm w-xl" placeholder="Input key..." v-model="profile.key" />
+          <button class="btn btn-sm btn-primary" @click="insertProfile">Insert Now</button>
+        </div>
+      </div>
     </div>
   </div>
 
