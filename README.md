@@ -1,5 +1,8 @@
-# Vue 3 + TypeScript + Vite
+# Blockchain Profiling with MetaMask - Sepolia, Ethers Library
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Proyek ini merupakan implementasi sederhana untuk melakukan profiling akun blockchain pada jaringan **Sepolia Testnet** dengan memanfaatkan library **Ethers.js**. Aplikasi ini memungkinkan pengguna untuk berinteraksi dengan blockchain melalui dompet **MetaMask**, termasuk fitur untuk menghubungkan akun, memeriksa saldo (balance), dan mengambil riwayat transaksi untuk analisis profil pengguna.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+___
+<br />
+
+![Preview](/public/preview.png)
